@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>渠道积分酬金查询</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #f0f4f8; min-height: 100vh; }
+.header { background: linear-gradient(135deg, #1677ff, #0958d9); color: #fff; padding: 16px 20px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(22,119,255,0.3); }
+.header h1 { font-size: 18px; font-weight: 700; }
+.header p { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+.container { max-width: 480px; margin: 0 auto; padding: 12px; }
+.card { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.card-title { font-size: 14px; font-weight: 700; color: #1677ff; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+.card-title::before { content: ''; width: 3px; height: 14px; background: #1677ff; border-radius: 2px; }
+.form-group { margin-bottom: 14px; }
+.form-group:last-child { margin-bottom: 0; }
+label { display: block; font-size: 13px; color: #555; margin-bottom: 6px; font-weight: 500; }
+label .required { color: #ff4d4f; margin-left: 2px; }
+select, input[type="number"] {
+  width: 100%; padding: 10px 12px; border: 1.5px solid #e0e0e0; border-radius: 8px;
+  font-size: 14px; color: #333; background: #fafafa; appearance: none; -webkit-appearance: none;
+  outline: none; transition: border-color 0.2s;
+}
+select:focus, input[type="number"]:focus { border-color: #1677ff; background: #fff; }
+.seg-control { display: flex; border: 1.5px solid #e0e0e0; border-radius: 8px; overflow: hidden; }
+.seg-control button {
+  flex: 1; padding: 9px 4px; border: none; background: #fafafa; font-size: 13px;
+  color: #666; cursor: pointer; transition: all 0.2s;
+}
+.seg-control button.active { background: #1677ff; color: #fff; font-weight: 600; }
+
+/* ===== 结果面板 ===== */
+.result-panel { background: linear-gradient(135deg, #e6f4ff, #f0f9ff); border: 1.5px solid #91caff; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.result-title { font-size: 13px; color: #1677ff; font-weight: 700; margin-bottom: 12px; }
+
+/* 大字展示区：积分 + 酬金并排 */
+.result-hero { display: flex; gap: 10px; margin-bottom: 12px; }
+.hero-block { flex: 1; border-radius: 10px; padding: 12px 10px; text-align: center; }
+.hero-block.score-block { background: #f6ffed; border: 1.5px solid #b7eb8f; }
+.hero-block.reward-block { background: #1677ff; border: 1.5px solid #0958d9; }
+.hero-block .hb-label { font-size: 11px; font-weight: 600; margin-bottom: 4px; }
+.score-block .hb-label { color: #52c41a; }
+.reward-block .hb-label { color: rgba(255,255,255,0.8); }
+.hero-block .hb-value { font-size: 30px; font-weight: 900; line-height: 1.1; }
+.score-block .hb-value { color: #389e0d; }
+.reward-block .hb-value { color: #fff; }
+.hero-block .hb-unit { font-size: 13px; font-weight: 600; }
+.score-block .hb-unit { color: #52c41a; }
+.reward-block .hb-unit { color: rgba(255,255,255,0.85); }
+.hero-block .hb-sub { font-size: 11px; margin-top: 4px; }
+.score-block .hb-sub { color: #8cc65e; }
+.reward-block .hb-sub { color: rgba(255,255,255,0.7); }
+
+/* 折叠明细 */
+.detail-toggle { display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; padding: 8px 0; color: #1677ff; font-size: 12px; font-weight: 600; user-select: none; border-top: 1px dashed #d9e8ff; margin-top: 4px; }
+.detail-toggle .toggle-arrow { transition: transform 0.25s; font-size: 10px; display: inline-block; }
+.detail-toggle.open .toggle-arrow { transform: rotate(180deg); }
+.detail-body { overflow: hidden; max-height: 0; transition: max-height 0.3s ease; }
+.detail-body.open { max-height: 800px; }
+.result-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px dashed #d9e8ff; }
+.result-row:last-child { border-bottom: none; }
+.result-label { font-size: 12px; color: #888; }
+.result-value { font-size: 13px; font-weight: 600; color: #333; }
+
+.notice-box { background: #fffbe6; border: 1px solid #ffe58f; border-radius: 8px; padding: 10px 12px; margin-top: 10px; }
+.notice-box .notice-title { font-size: 12px; font-weight: 700; color: #d48806; margin-bottom: 6px; }
+.notice-box ul { list-style: none; padding: 0; }
+.notice-box ul li { font-size: 11px; color: #8c6900; line-height: 1.7; padding-left: 12px; position: relative; }
+.notice-box ul li::before { content: '•'; position: absolute; left: 0; color: #faad14; }
+
+.btn-calc { width: 100%; padding: 14px; background: linear-gradient(135deg, #1677ff, #0958d9); color: #fff; border: none; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 12px rgba(22,119,255,0.35); }
+.btn-calc:active { transform: scale(0.98); }
+.btn-reset { width: 100%; padding: 11px; background: #f5f5f5; color: #666; border: none; border-radius: 10px; font-size: 14px; cursor: pointer; margin-top: 8px; }
+.input-hint { font-size: 11px; color: #aaa; margin-top: 4px; }
+.real-fee-preview { background: #f0f9ff; border: 1px solid #91caff; border-radius: 6px; padding: 7px 10px; font-size: 12px; color: #1677ff; margin-top: 6px; font-weight: 600; min-height: 28px; }
+.hidden { display: none !important; }
+.checkbox-group { display: flex; flex-direction: column; gap: 8px; }
+.checkbox-item { display: flex; align-items: center; gap: 8px; }
+.checkbox-item input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; flex-shrink: 0; }
+.checkbox-item label { font-size: 13px; color: #555; margin: 0; font-weight: 400; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>📊 渠道积分酬金查询</h1>
+  <p>输入业务信息，即时计算可获得的积分与酬金</p>
+</div>
+<div class="container">
+
+<!-- 渠道档位 -->
+<div class="card">
+  <div class="card-title">渠道档位</div>
+  <div class="form-group" style="margin-bottom:0">
+    <label>选择当前档位 <span class="required">*</span></label>
+    <div class="seg-control">
+      <button onclick="selectTier(0)" id="tierBtn0" class="active">0档</button>
+      <button onclick="selectTier(1)" id="tierBtn1">1档</button>
+      <button onclick="selectTier(2)" id="tierBtn2">2档</button>
+      <button onclick="selectTier(3)" id="tierBtn3">3档</button>
+      <button onclick="selectTier(4)" id="tierBtn4">4档</button>
+      <button onclick="selectTier(5)" id="tierBtn5">5档</button>
+    </div>
+    <div class="input-hint">0档:0-49分 | 1档:50-999 | 2档:1000-2999 | 3档:3000-4999 | 4档:5000-11999 | 5档:12000+</div>
+  </div>
+</div>
+
+<!-- 业务选择 -->
+<div class="card">
+  <div class="card-title">选择业务</div>
+  <div class="form-group" style="margin-bottom:0">
+    <label>业务类型 <span class="required">*</span></label>
+    <select id="bizType" onchange="onBizTypeChange()">
+      <option value="">-- 请选择业务类型 --</option>
+      <option value="single_new">单新增</option>
+      <option value="new_with_bb">新增+宽带</option>
+      <option value="new_with_bb_tv">新增+宽带+电视</option>
+      <option value="single_bb">单宽带（融合宽带）</option>
+      <option value="bb_tv">宽带+电视/智家</option>
+      <option value="naked_new">裸宽（新装）</option>
+      <option value="naked_renew">裸宽（续费）</option>
+      <option value="upgrade">升档</option>
+      <option value="contract_renew">强合约续约</option>
+      <option value="multi_floor">多人保底</option>
+      <option value="fttr">FTTR</option>
+    </select>
+  </div>
+</div>
+
+<!-- 动态输入区 -->
+<div class="card" id="inputCard" style="display:none">
+  <div class="card-title">业务参数</div>
+  <div id="dynamicInputs"></div>
+</div>
+
+<!-- 考核条件 -->
+<div class="card" id="conditionCard" style="display:none">
+  <div class="card-title">考核条件（可选）</div>
+  <div id="conditionInputs"></div>
+</div>
+
+<!-- 计算按钮 -->
+<button class="btn-calc" id="calcBtn" onclick="calculate()" style="display:none">立即计算</button>
+<button class="btn-reset" id="resetBtn" onclick="resetAll()" style="display:none">重置</button>
+
+<!-- 结果展示 -->
+<div id="resultSection" class="hidden">
+  <div class="result-panel">
+    <div class="result-title">📋 计算结果</div>
+    <!-- 大字积分+酬金 -->
+    <div class="result-hero">
+      <div class="hero-block score-block">
+        <div class="hb-label">积分</div>
+        <div><span class="hb-value" id="heroScore">0</span> <span class="hb-unit">分</span></div>
+        <div class="hb-sub" id="heroScoreSub"></div>
+      </div>
+      <div class="hero-block reward-block">
+        <div class="hb-label">总酬金</div>
+        <div><span class="hb-value" id="heroReward">0</span> <span class="hb-unit">元</span></div>
+        <div class="hb-sub" id="heroRewardSub"></div>
+      </div>
+    </div>
+    <!-- 折叠明细 -->
+    <div class="detail-toggle" id="detailToggle" onclick="toggleDetail()">
+      <span>查看计算明细</span>
+      <span class="toggle-arrow">▼</span>
+    </div>
+    <div class="detail-body" id="detailBody">
+      <div id="resultRows" style="padding-top:8px;"></div>
+    </div>
+  </div>
+  <div id="noticeSection"></div>
+</div>
+
+</div>
+
+<script>
+// ============ 档位管理 ============
+let selectedTier = 0;
+let bbBaseType = 'std';
+
+function selectTier(t) {
+  selectedTier = t;
+  for (let i = 0; i <= 5; i++) {
+    document.getElementById('tierBtn' + i).classList.toggle('active', i === t);
+  }
+}
+
+// ============ 折叠明细 ============
+function toggleDetail() {
+  const toggle = document.getElementById('detailToggle');
+  const body = document.getElementById('detailBody');
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  toggle.classList.toggle('open', !isOpen);
+  toggle.querySelector('span:first-child').textContent = isOpen ? '查看计算明细' : '收起明细';
+}
+
+// ============ 业务类型变化 ============
+function onBizTypeChange() {
+  const biz = document.getElementById('bizType').value;
+  const inputCard = document.getElementById('inputCard');
+  const conditionCard = document.getElementById('conditionCard');
+  const calcBtn = document.getElementById('calcBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  document.getElementById('resultSection').classList.add('hidden');
+  document.getElementById('detailBody').classList.remove('open');
+  document.getElementById('detailToggle').classList.remove('open');
+
+  if (!biz) {
+    inputCard.style.display = 'none';
+    conditionCard.style.display = 'none';
+    calcBtn.style.display = 'none';
+    resetBtn.style.display = 'none';
+    return;
+  }
+
+  inputCard.style.display = 'block';
+  calcBtn.style.display = 'block';
+  resetBtn.style.display = 'block';
+  bbBaseType = 'std';
+
+  renderInputs(biz);
+  renderConditions(biz);
+}
+
+// ============ 渲染输入区 ============
+function renderInputs(biz) {
+  const container = document.getElementById('dynamicInputs');
+  let html = '';
+
+  // 新增类：输入标套+折扣（按折选择）
+  if (biz === 'single_new' || biz === 'new_with_bb' || biz === 'new_with_bb_tv') {
+    html = `
+      <div class="form-group">
+        <label>标准套餐月费（元）<span class="required">*</span></label>
+        <input type="number" id="i_std_tariff" placeholder="如：99" min="0" step="0.01" oninput="calcRealPreview()">
+        <div class="input-hint">用于积分计算和分档判断（打折时仍填标准价）</div>
+      </div>
+      <div class="form-group">
+        <label>折扣（选择折扣率）</label>
+        <select id="i_discount" onchange="calcRealPreview()">
+          <option value="100">十折（原价/不打折）</option>
+          <option value="90">九折</option>
+          <option value="80">八折</option>
+          <option value="70">七折</option>
+          <option value="60">六折</option>
+          <option value="50">五折</option>
+          <option value="40">四折</option>
+          <option value="30">三折</option>
+          <option value="20">二折</option>
+          <option value="10">一折</option>
+        </select>
+        <div class="input-hint">积分用标套，酬金用实收（标套×折扣）</div>
+      </div>
+      <div class="real-fee-preview" id="realFeePreview">实收金额：与标套相同（十折）</div>`;
+  } else if (biz === 'single_bb' || biz === 'bb_tv') {
+    html = `
+      <div class="form-group">
+        <label>基准类型 <span class="required">*</span></label>
+        <div class="seg-control">
+          <button onclick="setBBBase('std')" id="bbBaseStd" class="active">按标套</button>
+          <button onclick="setBBBase('floor')" id="bbBaseFloor">按保底</button>
+        </div>
+        <div class="input-hint">基准金额用于计算积分和酬金</div>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label id="bbBaseLabel">标套金额（元）<span class="required">*</span></label>
+        <input type="number" id="i_bb_base" placeholder="如：100" min="0" step="0.01">
+      </div>`;
+  } else if (biz === 'naked_new' || biz === 'naked_renew') {
+    html = `
+      <div class="form-group" style="margin-bottom:0">
+        <label>宽带实收月费（元）<span class="required">*</span></label>
+        <input type="number" id="i_real_fee" placeholder="如：80" min="0" step="0.01">
+      </div>`;
+  } else if (biz === 'upgrade') {
+    html = `
+      <div class="form-group">
+        <label>升档后实套金额（元）<span class="required">*</span></label>
+        <input type="number" id="i_new_real" placeholder="如：100" min="0" step="0.01">
+      </div>
+      <div class="form-group">
+        <label>升档前实套金额（元）<span class="required">*</span></label>
+        <input type="number" id="i_old_real" placeholder="如：80" min="0" step="0.01">
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label>升档前超套金额（元）</label>
+        <input type="number" id="i_over_fee" placeholder="如：5（无则填0）" min="0" step="0.01" value="0">
+        <div class="input-hint">无超套费用填0</div>
+      </div>`;
+  } else if (biz === 'contract_renew') {
+    html = `
+      <div class="form-group" style="margin-bottom:0">
+        <label>实收月费（元）<span class="required">*</span></label>
+        <input type="number" id="i_real_fee" placeholder="如：50" min="0" step="0.01">
+      </div>`;
+  } else if (biz === 'multi_floor') {
+    html = `
+      <div class="form-group">
+        <label>保底类型 <span class="required">*</span></label>
+        <select id="i_floor_type">
+          <option value="new_floor">新入网多人保底（封顶80元）</option>
+          <option value="stock_floor">存量多人保底（封顶30元）</option>
+          <option value="stock_floor_fusion">存量多人保底融合（封顶80元）</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label>保底金额（元）<span class="required">*</span></label>
+        <input type="number" id="i_floor_amt" placeholder="如：100" min="0" step="0.01">
+      </div>`;
+  } else if (biz === 'fttr') {
+    html = `<div style="color:#52c41a;font-size:13px;padding:4px 0;">✅ FTTR积分固定170分，酬金固定430元，无需输入额外参数。</div>`;
+  }
+
+  container.innerHTML = html;
+}
+
+// 实时预览实收金额
+function calcRealPreview() {
+  const std = parseFloat(document.getElementById('i_std_tariff').value) || 0;
+  const discSelect = document.getElementById('i_discount');
+  const disc = discSelect ? parseFloat(discSelect.value) : 100;
+  const preview = document.getElementById('realFeePreview');
+  if (!preview) return;
+  if (!std) { preview.textContent = '实收金额：请先输入标准套餐月费'; return; }
+  const real = +(std * disc / 100).toFixed(2);
+  const discMap = {100:'十折（原价）',90:'九折',80:'八折',70:'七折',60:'六折',50:'五折',40:'四折',30:'三折',20:'二折',10:'一折'};
+  const discName = discMap[disc] || disc + '%';
+  preview.textContent = `实收金额：${std.toFixed(2)} × ${discName} = ${real.toFixed(2)} 元`;
+}
+
+// 宽带基准类型切换
+function setBBBase(type) {
+  bbBaseType = type;
+  document.getElementById('bbBaseStd').classList.toggle('active', type === 'std');
+  document.getElementById('bbBaseFloor').classList.toggle('active', type === 'floor');
+  const label = document.getElementById('bbBaseLabel');
+  if (label) label.innerHTML = (type === 'std' ? '标套金额（元）' : '保底金额（元）') + '<span class="required">*</span>';
+}
+
+// ============ 渲染考核条件 ============
+function renderConditions(biz) {
+  const card = document.getElementById('conditionCard');
+  const container = document.getElementById('conditionInputs');
+  const showCondBiz = ['single_new', 'new_with_bb', 'new_with_bb_tv', 'upgrade'];
+  if (!showCondBiz.includes(biz)) { card.style.display = 'none'; return; }
+
+  card.style.display = 'block';
+  let html = '<div class="checkbox-group">';
+  if (['single_new', 'new_with_bb', 'new_with_bb_tv'].includes(biz)) {
+    html += `
+      <div class="checkbox-item">
+        <input type="checkbox" id="c_no_subcard">
+        <label for="c_no_subcard">未同办副卡/共享卡（套餐≥79元时激励减10%）</label>
+      </div>`;
+  }
+  html += `
+    <div class="checkbox-item">
+      <input type="checkbox" id="c_self_replace">
+      <label for="c_self_replace">自替代重入网</label>
+    </div>`;
+  if (['single_new', 'new_with_bb', 'new_with_bb_tv'].includes(biz)) {
+    html += `
+      <div class="form-group" id="contractTypeGroup" style="margin-top:10px;display:none;margin-bottom:0">
+        <label>合约类型（自替代重入网时选择）</label>
+        <select id="c_contract_type">
+          <option value="key">重点合约（激励×70%）</option>
+          <option value="normal">普通合约（激励×50%）</option>
+          <option value="none">无合约（仅发手续费）</option>
+        </select>
+      </div>`;
+  }
+  html += '</div>';
+  container.innerHTML = html;
+
+  const selfReplace = document.getElementById('c_self_replace');
+  if (selfReplace) {
+    selfReplace.addEventListener('change', function() {
+      const ctg = document.getElementById('contractTypeGroup');
+      if (ctg) ctg.style.display = this.checked ? 'block' : 'none';
+    });
+  }
+}
+
+// ============ 核心计算逻辑（最终版） ============
+const BIZ_CONFIG = {
+  // 单新增：按标套分档（不再是按实收分档）
+  single_new: {
+    tiers_rule: [
+      // 标套<38
+      { maxStd: 38,       scorePct: 1.0, A: 0.8, R: 0.8, B: [0, 0.2, 0.2, 0.2, 0.2, 0.2], cap: null },
+      // 38≤标套<58
+      { maxStd: 58,       scorePct: 1.0, A: 0.8, R: 0.8, B: [0, 0.7, 1.0, 1.2, 1.5, 1.7], cap: null },
+      // 58≤标套<78
+      { maxStd: 78,       scorePct: 1.0, A: 0.8, R: 0.8, B: [0, 1.1, 1.3, 1.6, 1.9, 2.2], cap: null },
+      // 标套≥78
+      { maxStd: Infinity, scorePct: 1.2, A: 0.8, R: 0.8, B: [0, 1.8, 2.2, 2.4, 2.8, 3.2], cap: null },
+    ]
+  },
+  new_with_bb:    { scorePct: 1.2, A: 0.8, R: 0.8, B: [0, 3.2, 3.2, 3.7, 4.2, 4.2], cap: null },
+  new_with_bb_tv: { scorePct: 1.5, A: 0.8, R: 0.8, B: [0, 3.2, 3.7, 4.2, 4.7, 4.7], cap: null },
+  // 单宽带：积分=Base×50%，酬金=Base×1.0，封顶200
+  single_bb:      { scorePct: 0.5, A: 1.0, R: 0.8, B: [0, 0, 0, 0, 0, 0], cap: 200 },
+  // 宽带+电视：积分=Base×80%，酬金=Base×2.0，封顶300
+  bb_tv:          { scorePct: 0.8, A: 2.0, R: 0.8, B: [0, 0, 0, 0, 0, 0], cap: 300 },
+  // 裸宽新装：积分=实收×100%，酬金=实收×5.0，月数ceil(5.0/0.8)=7
+  naked_new:      { scorePct: 1.0, A: 5.0, R: 0.8, B: [0, 0, 0, 0, 0, 0], cap: null },
+  // 裸宽续费：积分=实收×100%，酬金=实收×1.0，月数ceil(1.0/0.8)=2
+  naked_renew:    { scorePct: 1.0, A: 1.0, R: 0.8, B: [0, 0, 0, 0, 0, 0], cap: null },
+  upgrade:        { A: 0.8, R: 0.8, B: [0, 1.2, 1.7, 1.7, 2.2, 2.2], cap: null }
+};
+
+function getVal(id) {
+  const el = document.getElementById(id);
+  if (!el) return 0;
+  return parseFloat(el.value) || 0;
+}
+function isChecked(id) {
+  const el = document.getElementById(id);
+  return el ? el.checked : false;
+}
+
+// 获取新增类实收金额
+function getNewRealFee() {
+  const std = getVal('i_std_tariff');
+  const discSelect = document.getElementById('i_discount');
+  const disc = discSelect ? parseFloat(discSelect.value) : 100;
+  if (!std) return 0;
+  return +(std * disc / 100).toFixed(2);
+}
+
+function calculate() {
+  const biz = document.getElementById('bizType').value;
+  if (!biz) { alert('请先选择业务类型'); return; }
+
+  let score = 0, totalReward = 0, settleMonths = 1;
+  let rows = [], notices = [];
+  let scoreLabel = '', isFTTR = false;
+
+  // ===== FTTR =====
+  if (biz === 'fttr') {
+    score = 170; totalReward = 430; isFTTR = true;
+    scoreLabel = '固定170分';
+    settleMonths = 1;
+    notices = [
+      '📋 稽核要点：T+2月发放80%（344元），剩余20%后续发放'
+    ];
+    rows = [
+      { label: '积分来源', value: '固定170分' },
+      { label: '酬金来源', value: '固定430元' },
+      { label: '开始结算月', value: 'T+2（第2个月）' },
+      { label: '结算月数', value: '1个月（一次性发放80%）' },
+      { label: '每月酬金', value: '344元（T+2发放）' },
+      { label: '剩余酬金', value: '86元（后续发放）' },
+    ];
+    showResult(score, scoreLabel, totalReward, settleMonths, rows, notices, true);
+    return;
+  }
+
+  // ===== 强合约续约 =====
+  if (biz === 'contract_renew') {
+    const real = getVal('i_real_fee');
+    if (!real) { alert('请输入实收月费'); return; }
+    totalReward = Math.min(0.5 * real, 30); // 封顶30元
+    scoreLabel = '无积分';
+    const monthly = Math.round(totalReward * 10) / 10;
+    rows = [
+      { label: '实收月费', value: real.toFixed(2) + ' 元' },
+      { label: '封顶值', value: '30 元' },
+      { label: '计算公式', value: 'min(50%×实收, 30元)' },
+      { label: '开始结算月', value: 'T+2（第2个月）' },
+      { label: '结算月数', value: '1个月（一次性）' },
+      { label: '每月酬金', value: monthly.toFixed(1) + ' 元' },
+    ];
+    notices = ['📋 稽核要点：到期前后3个月内续约同类合约，酬金封顶30元'];
+    showResult(0, scoreLabel, totalReward, 1, rows, notices);
+    return;
+  }
+
+  // ===== 多人保底 =====
+  if (biz === 'multi_floor') {
+    const floorType = document.getElementById('i_floor_type').value;
+    const floorAmt = getVal('i_floor_amt');
+    if (!floorAmt) { alert('请输入保底金额'); return; }
+    let cap = 80, typeName = '新入网多人保底';
+    if (floorType === 'stock_floor') { cap = 30; typeName = '存量多人保底'; }
+    else if (floorType === 'stock_floor_fusion') { cap = 80; typeName = '存量多人保底融合'; }
+    totalReward = Math.min(0.5 * floorAmt, cap); // 封顶值30/80
+    scoreLabel = '无积分';
+    const monthly = Math.round(totalReward * 10) / 10;
+    rows = [
+      { label: '类型', value: typeName },
+      { label: '保底金额', value: floorAmt.toFixed(2) + ' 元' },
+      { label: '封顶值', value: cap + ' 元' },
+      { label: '计算公式', value: `min(50%×${floorAmt.toFixed(2)}, ${cap}) = ${totalReward.toFixed(1)}元` },
+      { label: '开始结算月', value: 'T+2（第2个月）' },
+      { label: '结算月数', value: '1个月（一次性）' },
+      { label: '每月酬金', value: monthly.toFixed(1) + ' 元' },
+    ];
+    notices = ['📋 稽核要点：同一身份证3个月内仅享受一次保底激励'];
+    showResult(0, scoreLabel, totalReward, 1, rows, notices);
+    return;
+  }
+
+  // ===== 升档 =====
+  if (biz === 'upgrade') {
+    const newReal = getVal('i_new_real'), oldReal = getVal('i_old_real'), overFee = getVal('i_over_fee');
+    if (!newReal || !oldReal) { alert('请输入升档前后实套金额'); return; }
+    const diff = newReal - oldReal - overFee;
+    const cfg = BIZ_CONFIG.upgrade;
+    const B = cfg.B[selectedTier], A = cfg.A, totalCoef = A + B;
+    const diffSettle = Math.ceil(totalCoef / cfg.R);
+    rows = [
+      { label: '升档前实套', value: oldReal.toFixed(2) + ' 元' },
+      { label: '升档后实套', value: newReal.toFixed(2) + ' 元' },
+      { label: '超套金额', value: overFee.toFixed(2) + ' 元' },
+      { label: '计费差额', value: diff.toFixed(2) + ' 元' },
+      { label: '业务激励（A）', value: String(A) },
+      { label: '高质量发展激励（B）', value: String(B) },
+      { label: '总系数（A+B）', value: totalCoef.toFixed(2) },
+      { label: '开始结算月', value: 'T+2（第2个月）' },
+      { label: '结算月数', value: diff > 0 ? diffSettle + ' 个月' : '-' },
+    ];
+    if (diff <= 0) {
+      notices = ['差额≤0，本次升档无酬金'];
+      rows.push({ label: '每月酬金', value: '0 元' });
+      showResult(0, '无积分', 0, 1, rows, notices);
+    } else {
+      totalReward = diff * totalCoef;
+      settleMonths = diffSettle;
+      const monthly = Math.round(totalReward / settleMonths * 10) / 10;
+      rows.push({ label: '每月酬金', value: monthly.toFixed(1) + ' 元' });
+      notices = [
+        '📋 稽核要点1：同一号码6个月内仅结算一次',
+        '📋 稽核要点2：需ARPU提升（差额>0即满足）',
+        '📋 稽核要点3：新入网3个月内换套餐不结算'
+      ];
+      showResult(0, '无积分', totalReward, settleMonths, rows, notices);
+    }
+    return;
+  }
+
+  // ===== 单宽带 =====
+  if (biz === 'single_bb') {
+    const base = getVal('i_bb_base');
+    if (!base) { alert('请输入基准金额'); return; }
+    const cfg = BIZ_CONFIG.single_bb;
+    const A = cfg.A, totalCoef = A; // 单宽带B=0
+    score = Math.round(base * cfg.scorePct);
+    // 酬金 = min(基准×1.0, 200封顶)
+    totalReward = Math.min(base * totalCoef, cfg.cap);
+    settleMonths = Math.ceil(totalCoef / cfg.R);
+    const monthly = Math.round(totalReward / settleMonths * 10) / 10;
+    scoreLabel = '50%标套/保底';
+    rows = [
+      { label: '基准类型', value: bbBaseType === 'std' ? '标套' : '保底' },
+      { label: '基准金额', value: base.toFixed(2) + ' 元' },
+      { label: '积分标准', value: '50%×基准' },
+      { label: '积分计算', value: `${base.toFixed(2)} × 50% = ${score} 分` },
+      { label: '业务激励（A）', value: String(A) },
+      { label: '高质量发展激励（B）', value: '0（各档相同）' },
+      { label: '总系数（A+B）', value: totalCoef.toFixed(2) },
+      { label: '计算公式', value: `min(基准${base} × ${totalCoef.toFixed(1)}, ${cfg.cap}封顶)` },
+      { label: '实际酬金', value: totalReward.toFixed(1) + ' 元' },
+      { label: '封顶值', value: cfg.cap + ' 元' },
+      { label: '开始结算月', value: 'T+2（第2个月）' },
+      { label: '结算月数', value: settleMonths + ' 个月' },
+      { label: '每月酬金', value: monthly.toFixed(1) + ' 元' },
+    ];
+    notices = [
+      '📋 稽核要点1：一年内仅结算一次',
+      '📋 稽核要点2：虚假宽带需扣回费用',
+      '📋 稽核要点3：酬金封顶200元'
+    ];
+    showResult(score, scoreLabel, totalReward, settleMonths, rows, notices);
+    return;
+  }
+
+  // ===== 宽带+电视 =====
+  if (biz === 'bb_tv') {
+    const base = getVal('i_bb_base');
+    if (!base) { alert('请输入基准金额'); return; }
+    const cfg = BIZ_CONFIG.bb_tv;
+    const A = cfg.A, totalCoef = A; // bb_tv B=0
+    score = Math.round(base * cfg.scorePct);
+    // 酬金 = min(基准×2.0, 300封顶)
+    totalReward = Math.min(base * totalCoef, cfg.cap);
+    settleMonths = Math.ceil(totalCoef / cfg.R);
+    const monthly = Math.round(totalReward / settleMonths * 10) / 10;
+    scoreLabel = '80%标套/保底';
+    rows = [
+      { label: '基准类型', value: bbBaseType === 'std' ? '标套' : '保底' },
+      { label: '基准金额', value: base.toFixed(2) + ' 元' },
+      { label: '积分标准', value: '80%×基准' },
+      { label: '积分计算', value: `${base.toFixed(2)} × 80% = ${score} 分` },
+      { label: '业务激励（A）', value: String(A) },
+      { label: '高质量发展激励（B）', value: '0（各档相同）' },
+      { label: '总系数（A+B）', value: totalCoef.toFixed(2) },
+      { label: '计算公式', value: `min(基准${base} × ${totalCoef.toFixed(1)}, ${cfg.cap}封顶)` },
+      { label: '实际酬金', value: totalReward.toFixed(1) + ' 元' },
+      { label: '封顶值', value: cfg.cap + ' 元' },
+      { label: '开始结算月', value: 'T+2（第2个月）' },
+      { label: '结算月数', value: settleMonths + ' 个月' },
+      { label: '每月酬金', value: monthly.toFixed(1) + ' 元' },
+    ];
+    notices = [
+      '📋 稽核要点：融合业务需满足单项业务考核',
+      '📋 稽核要点：酬金封顶300元'
+    ];
+    showResult(score, scoreLabel, totalReward, settleMonths, rows, notices);
+    return;
+  }
+
+  // ===== 裸宽新装 =====
+  if (biz === 'naked_new') {
+    const real = getVal('i_real_fee');
+    if (!real) { alert('请输入宽带实收月费'); return; }
+    const cfg = BIZ_CONFIG.naked_new;
+    const A = cfg.A, totalCoef = A; // B=0
+    score = Math.round(real * cfg.scorePct);
+    totalReward = real * totalCoef; // 实收×5.0
+    settleMonths = Math.ceil(totalCoef / cfg.R);
+    const monthly = Math.round(totalReward / settleMonths * 10) / 10;
+    scoreLabel = '100%实收';
+    rows = [
+      { label: '实收月费', value: real.toFixed(2) + ' 元' },
+      { label: '积分标准', value: '100%×实收' },
+      { label: '积分计算', value: `${real.toFixed(2)} × 100% = ${score} 分` },
+      { label: '业务激励（A）', value: String(A) },
+      { label: '高质量发展激励（B）', value: '0（各档相同）' },
+      { label: '总系数（A+B）', value: totalCoef.toFixed(2) },
+      { label: '计算公式', value: `${real.toFixed(2)} × ${totalCoef.toFixed(1)} = ${totalReward.toFixed(2)}元` },
+      { label: '开始结算月', value: '竣工月次月（宽带竣工后）' },
+      { label: '结算月数', value: settleMonths + ' 个月' },
+      { label: '每月酬金', value: monthly.toFixed(1) + ' 元' },
+    ];
+    notices = [
+      '📋 稽核要点：业务在用且正常收费',
+      '📋 稽核要点：首次结算月为竣工后的次月'
+    ];
+    showResult(score, scoreLabel, totalReward, settleMonths, rows, notices);
+    return;
+  }
+
+  // ===== 裸宽续费 =====
+  if (biz === 'naked_renew') {
+    const real = getVal('i_real_fee');
+    if (!real) { alert('请输入宽带实收月费'); return; }
+    const cfg = BIZ_CONFIG.naked_renew;
+    const A = cfg.A, totalCoef = A; // B=0
+    score = Math.round(real * cfg.scorePct);
+    totalReward = real * totalCoef; // 实收×1.0
+    settleMonths = Math.ceil(totalCoef / cfg.R);
+    const monthly = Math.round(totalReward / settleMonths * 10) / 10;
+    scoreLabel = '100%实收';
+    rows = [
+      { label: '实收月费', value: real.toFixed(2) + ' 元' },
+      { label: '积分标准', value: '100%×实收' },
+      { label: '积分计算', value: `${real.toFixed(2)} × 100% = ${score} 分` },
+      { label: '业务激励（A）', value: String(A) },
+      { label: '高质量发展激励（B）', value: '0（各档相同）' },
+      { label: '总系数（A+B）', value: totalCoef.toFixed(2) },
+      { label: '计算公式', value: `${real.toFixed(2)} × ${totalCoef.toFixed(1)} = ${totalReward.toFixed(2)}元` },
+      { label: '开始结算月', value: '竣工月次月（宽带竣工后）' },
+      { label: '结算月数', value: settleMonths + ' 个月' },
+      { label: '每月酬金', value: monthly.toFixed(1) + ' 元' },
+    ];
+    notices = [
+      '📋 稽核要点：业务在用且正常收费',
+      '📋 稽核要点：首次结算月为竣工后的次月'
+    ];
+    showResult(score, scoreLabel, totalReward, settleMonths, rows, notices);
+    return;
+  }
+
+  // ===== 单新增 =====
+  if (biz === 'single_new') {
+    const stdTariff = getVal('i_std_tariff');
+    if (!stdTariff) { alert('请输入标准套餐月费'); return; }
+    const realFee = getNewRealFee();
+    if (!realFee) { alert('实收金额为0，请检查输入'); return; }
+
+    const cfg = BIZ_CONFIG.single_new;
+    // 修正：按标套分档，不是按实收
+    let rule = cfg.tiers_rule.find(r => stdTariff < r.maxStd) || cfg.tiers_rule[cfg.tiers_rule.length - 1];
+    const B = rule.B[selectedTier], A = rule.A, totalCoef = A + B;
+    score = Math.round(stdTariff * rule.scorePct);
+    totalReward = realFee * totalCoef;
+    settleMonths = Math.ceil(totalCoef / rule.R);
+    const monthly = Math.round(totalReward / settleMonths * 10) / 10;
+    scoreLabel = (rule.scorePct * 100).toFixed(0) + '%标套';
+
+    let tierName = '';
+    if (stdTariff < 38) tierName = '标套＜38元档';
+    else if (stdTariff < 58) tierName = '38≤标套＜58元档';
+    else if (stdTariff < 78) tierName = '58≤标套＜78元档';
+    else tierName = '标套≥78元档';
+
+    const discSelect = document.getElementById('i_discount');
+    const discVal = discSelect ? discSelect.value : '100';
+    const discMap = {100:'十折（原价）',90:'九折',80:'八折',70:'七折',60:'六折',50:'五折',40:'四折',30:'三折',20:'二折',10:'一折'};
+    const discName = discMap[discVal] || discVal + '%';
+
+    rows = [
+      { label: '标准套餐月费（标套）', value: stdTariff.toFixed(2) + ' 元' },
+      { label: '折扣', value: discName },
+      { label: '实收金额', value: realFee.toFixed(2) + ' 元' },
+      { label: '命中分档（按标套）', value: tierName },
+      { label: '积分标准', value: (rule.scorePct * 100).toFixed(0) + '%×标套' },
+      { label: '积分计算', value: `${stdTariff.toFixed(2)} × ${(rule.scorePct*100).toFixed(0)}% = ${score} 分` },
+      { label: '业务激励（A）', value: String(A) },
+      { label: '高质量发展激励（B）', value: String(B) },
+      { label: '总系数（A+B）', value: totalCoef.toFixed(2) },
+      { label: '计算公式', value: `${realFee.toFixed(2)} × ${totalCoef.toFixed(2)} = ${totalReward.toFixed(2)}元` },
+      { label: '开始结算月', value: 'T+2（第2个月）' },
+      { label: '结算月数', value: settleMonths + ' 个月' },
+      { label: '每月酬金', value: monthly.toFixed(1) + ' 元' },
+    ];
+
+    notices = [
+      '📋 稽核要点1：6个月内仅结算一次',
+      '📋 稽核要点2：降档按新价计算',
+      '📋 稽核要点3：套餐≥79元未办副卡减10%'
+    ];
+
+    if (isChecked('c_no_subcard') && stdTariff >= 79)
+      notices.push('⚠️ 当前勾选"未同办副卡"：激励减少10%（总酬金×0.9）');
+    if (isChecked('c_self_replace')) {
+      const ctVal = (document.getElementById('c_contract_type') || {}).value || 'key';
+      if (ctVal === 'key') notices.push('⚠️ 自替代重入网+重点合约：激励为原标准的70%');
+      else if (ctVal === 'normal') notices.push('⚠️ 自替代重入网+普通合约：激励为原标准的50%');
+      else notices.push('⚠️ 自替代重入网+无合约：仅发手续费（58元以下上限30元，58及以上上限50元）');
+    }
+    showResult(score, scoreLabel, totalReward, settleMonths, rows, notices);
+    return;
+  }
+
+  // ===== 新增+宽带 / 新增+宽带+电视 =====
+  if (biz === 'new_with_bb' || biz === 'new_with_bb_tv') {
+    const stdTariff = getVal('i_std_tariff');
+    if (!stdTariff) { alert('请输入标准套餐月费'); return; }
+    const realFee = getNewRealFee();
+    if (!realFee) { alert('实收金额为0，请检查输入'); return; }
+    const cfg = BIZ_CONFIG[biz];
+    const B = cfg.B[selectedTier], A = cfg.A, totalCoef = A + B;
+    score = Math.round(stdTariff * cfg.scorePct);
+    totalReward = realFee * totalCoef;
+    settleMonths = Math.ceil(totalCoef / cfg.R);
+    const monthly = Math.round(totalReward / settleMonths * 10) / 10;
+    scoreLabel = (cfg.scorePct * 100).toFixed(0) + '%标套';
+
+    const discSelect = document.getElementById('i_discount');
+    const discVal = discSelect ? discSelect.value : '100';
+    const discMap = {100:'十折（原价）',90:'九折',80:'八折',70:'七折',60:'六折',50:'五折',40:'四折',30:'三折',20:'二折',10:'一折'};
+    const discName = discMap[discVal] || discVal + '%';
+
+    rows = [
+      { label: '标准套餐月费（标套）', value: stdTariff.toFixed(2) + ' 元' },
+      { label: '折扣', value: discName },
+      { label: '实收金额', value: realFee.toFixed(2) + ' 元' },
+      { label: '积分标准', value: (cfg.scorePct * 100).toFixed(0) + '%×标套' },
+      { label: '积分计算', value: `${stdTariff.toFixed(2)} × ${(cfg.scorePct*100).toFixed(0)}% = ${score} 分` },
+      { label: '业务激励（A）', value: String(A) },
+      { label: '高质量发展激励（B）', value: String(B) },
+      { label: '总系数（A+B）', value: totalCoef.toFixed(2) },
+      { label: '计算公式', value: `${realFee.toFixed(2)} × ${totalCoef.toFixed(2)} = ${totalReward.toFixed(2)}元` },
+      { label: '开始结算月', value: 'T+2（第2个月）' },
+      { label: '结算月数', value: settleMonths + ' 个月' },
+      { label: '每月酬金', value: monthly.toFixed(1) + ' 元' },
+    ];
+
+    notices = [
+      '📋 稽核要点1：6个月内仅结算一次',
+      '📋 稽核要点2：降档按新价计算',
+      '📋 稽核要点3：套餐≥79元未办副卡减10%'
+    ];
+
+    if (isChecked('c_no_subcard') && stdTariff >= 79)
+      notices.push('⚠️ 未同办副卡/共享卡，套餐≥79元：激励减少10%（总酬金×0.9）');
+    if (isChecked('c_self_replace')) {
+      const ctVal = (document.getElementById('c_contract_type') || {}).value || 'key';
+      if (ctVal === 'key') notices.push('⚠️ 自替代重入网+重点合约：激励为原标准的70%');
+      else if (ctVal === 'normal') notices.push('⚠️ 自替代重入网+普通合约：激励为原标准的50%');
+      else notices.push('⚠️ 自替代重入网+无合约：仅发手续费（58元以下上限30元，58及以上上限50元）');
+    }
+    showResult(score, scoreLabel, totalReward, settleMonths, rows, notices);
+    return;
+  }
+
+  alert('未匹配的业务类型');
+}
+
+// ============ 展示结果 ============
+function showResult(score, scoreLabel, totalReward, settleMonths, rows, notices, fttr = false) {
+  document.getElementById('heroScore').textContent = score > 0 ? score : (scoreLabel === '无积分' ? '—' : '0');
+  document.getElementById('heroScoreSub').textContent = score > 0 ? scoreLabel : '';
+
+  const monthly = settleMonths > 0 ? Math.round(totalReward / settleMonths * 10) / 10 : totalReward;
+  document.getElementById('heroReward').textContent = totalReward.toFixed(1);
+
+  // 酬金副文本
+  const rewardSub = document.getElementById('heroRewardSub');
+  if (fttr) {
+    rewardSub.textContent = 'T+2发80%，后续发20%';
+  } else if (settleMonths > 1) {
+    rewardSub.textContent = `T+2起·共${settleMonths}月·月均${monthly.toFixed(1)}元`;
+  } else {
+    rewardSub.textContent = 'T+2发放（一次性）';
+  }
+
+  // 明细行
+  let html = '';
+  rows.forEach(r => {
+    html += `<div class="result-row"><span class="result-label">${r.label}</span><span class="result-value">${r.value}</span></div>`;
+  });
+  document.getElementById('resultRows').innerHTML = html;
+
+  // 备注
+  const noticeEl = document.getElementById('noticeSection');
+  if (notices && notices.length > 0) {
+    let nHtml = `<div class="notice-box"><div class="notice-title">📌 注意事项</div><ul>`;
+    notices.forEach(n => { nHtml += `<li>${n}</li>`; });
+    noticeEl.innerHTML = nHtml + '</ul></div>';
+  } else {
+    noticeEl.innerHTML = '';
+  }
+
+  // 重置折叠
+  document.getElementById('detailBody').classList.remove('open');
+  document.getElementById('detailToggle').classList.remove('open');
+  document.getElementById('detailToggle').querySelector('span:first-child').textContent = '查看计算明细';
+
+  document.getElementById('resultSection').classList.remove('hidden');
+  document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ============ 重置 ============
+function resetAll() {
+  document.getElementById('bizType').value = '';
+  document.getElementById('inputCard').style.display = 'none';
+  document.getElementById('conditionCard').style.display = 'none';
+  document.getElementById('calcBtn').style.display = 'none';
+  document.getElementById('resetBtn').style.display = 'none';
+  document.getElementById('resultSection').classList.add('hidden');
+  document.getElementById('dynamicInputs').innerHTML = '';
+  document.getElementById('conditionInputs').innerHTML = '';
+  bbBaseType = 'std';
+}
+</script>
+</body>
+</html>
